@@ -1,0 +1,23 @@
+{
+  "name": "boas-praticas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Módulo Boas Práticas - API (Node/Express/Prisma) + frontend (React/Vite)",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w backend",
+    "dev:web": "npm run dev -w frontend",
+    "build": "npm run build -w frontend && npm run build -w backend",
+    "start": "npm run start -w backend",
+    "test": "npm test -w backend",
+    "lint": "npm run typecheck -w backend && npm run lint -w frontend"
+  },
+  "overrides": {
+    "mariadb": "^3.5.4",
+    "mysql2": "^3.24.4",
+    "deepmerge-ts": "^8.0.0"
+  }
+}

@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+
+jobs:
+  mysql:
+    name: Testes (MySQL - desenvolvimento)
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: boaspraticas_test
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="mysqladmin ping -proot" --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      DB_PROVIDER: mysql
+      DATABASE_URL: mysql://root:root@localhost:3306/boaspraticas_test?allowPublicKeyRetrieval=true
+      DATABASE_URL_TEST: mysql://root:root@localhost:3306/boaspraticas_test?allowPublicKeyRetrieval=true
+      JWT_SECRET: segredo-somente-para-ci-com-mais-de-32-caracteres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run schema:check -w backend
+      - run: npm run build
+      - run: npm test
+
+  sqlserver:
+    name: Testes (SQL Server - homologação/produção)
+    runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "Ci@BoasPraticas2026"
+        ports: ["1433:1433"]
+        options: >-
+          --health-cmd="/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Ci@BoasPraticas2026' -C -Q 'SELECT 1'"
+          --health-interval=10s --health-timeout=5s --health-retries=20
+    env:
+      DB_PROVIDER: sqlserver
+      DATABASE_URL: sqlserver://localhost:1433;database=boaspraticas_test;user=sa;password=Ci@BoasPraticas2026;encrypt=true;trustServerCertificate=true
+      DATABASE_URL_TEST: sqlserver://localhost:1433;database=boaspraticas_test;user=sa;password=Ci@BoasPraticas2026;encrypt=true;trustServerCertificate=true
+      JWT_SECRET: segredo-somente-para-ci-com-mais-de-32-caracteres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Criar banco de testes
+        run: >-
+          docker exec ${{ job.services.sqlserver.id }} /opt/mssql-tools18/bin/sqlcmd
+          -S localhost -U sa -P 'Ci@BoasPraticas2026' -C -Q "CREATE DATABASE boaspraticas_test"
+      # npm ci roda o `prisma generate` (postinstall) já com DB_PROVIDER=sqlserver.
+      - run: npm ci
+      - run: npm test

@@ -1,0 +1,94 @@
+// Schema principal (MySQL - desenvolvimento local).
+//
+// A versão SQL Server (homologação/produção no Azure) é GERADA a partir deste
+// arquivo com `npm run schema:sqlserver`. Nunca edite prisma/sqlserver/schema.prisma
+// manualmente.
+//
+// Regras de portabilidade MySQL <-> SQL Server:
+//  - Não usar `enum` (SQL Server não suporta): status/perfis são String validados na API.
+//  - Tipos nativos permitidos: @db.VarChar(n) e @db.Text (convertidos para NVarChar).
+//  - Relações com onDelete/onUpdate NoAction (SQL Server não aceita múltiplos caminhos de cascade).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Usuario {
+  id           Int      @id @default(autoincrement())
+  nome         String   @db.VarChar(150)
+  email        String   @unique @db.VarChar(191)
+  senhaHash    String   @map("senha_hash") @db.VarChar(255)
+  /// ADMIN | GESTOR | COLABORADOR
+  perfil       String   @default("COLABORADOR") @db.VarChar(20)
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  boasPraticasAutor     BoaPratica[]          @relation("Autor")
+  boasPraticasAprovador BoaPratica[]          @relation("Aprovador")
+  historico             HistoricoBoaPratica[]
+
+  @@map("usuarios")
+}
+
+model Categoria {
+  id           Int      @id @default(autoincrement())
+  nome         String   @unique @db.VarChar(100)
+  descricao    String?  @db.VarChar(500)
+  ativo        Boolean  @default(true)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  boasPraticas BoaPratica[]
+
+  @@map("categorias")
+}
+
+model BoaPratica {
+  id           Int       @id @default(autoincrement())
+  titulo       String    @db.VarChar(200)
+  resumo       String    @db.VarChar(500)
+  conteudo     String    @db.Text
+  /// RASCUNHO | EM_REVISAO | DEVOLVIDA | PUBLICADA | ARQUIVADA
+  status       String    @default("RASCUNHO") @db.VarChar(20)
+  categoriaId  Int       @map("categoria_id")
+  autorId      Int       @map("autor_id")
+  aprovadorId  Int?      @map("aprovador_id")
+  publicadaEm  DateTime? @map("publicada_em")
+  criadoEm     DateTime  @default(now()) @map("criado_em")
+  atualizadoEm DateTime  @updatedAt @map("atualizado_em")
+
+  categoria Categoria             @relation(fields: [categoriaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  autor     Usuario               @relation("Autor", fields: [autorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  aprovador Usuario?              @relation("Aprovador", fields: [aprovadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  historico HistoricoBoaPratica[]
+
+  @@index([status])
+  @@index([categoriaId])
+  @@index([autorId])
+  @@map("boas_praticas")
+}
+
+/// Trilha de auditoria do fluxo de aprovação.
+model HistoricoBoaPratica {
+  id           Int      @id @default(autoincrement())
+  boaPraticaId Int      @map("boa_pratica_id")
+  usuarioId    Int      @map("usuario_id")
+  /// CRIACAO | EDICAO | ENVIO_REVISAO | APROVACAO | DEVOLUCAO | ARQUIVAMENTO
+  acao         String   @db.VarChar(30)
+  statusDe     String?  @map("status_de") @db.VarChar(20)
+  statusPara   String   @map("status_para") @db.VarChar(20)
+  comentario   String?  @db.VarChar(1000)
+  criadoEm     DateTime @default(now()) @map("criado_em")
+
+  boaPratica BoaPratica @relation(fields: [boaPraticaId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuario    Usuario    @relation(fields: [usuarioId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([boaPraticaId])
+  @@map("historico_boas_praticas")
+}
