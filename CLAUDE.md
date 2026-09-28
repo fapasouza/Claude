@@ -4,7 +4,7 @@ Módulo "Boas Práticas": monorepo npm com `backend/` (Node 22, Express 5, Prism
 
 ## Comandos
 - `npm run lint` (typecheck do backend + oxlint no frontend), `npm run build`, `npm test` — rode todos antes de commitar.
-- Banco local: `docker compose up -d mysql`; migrações: `npm run db:migrate -w backend`; seed: `npm run db:seed -w backend`.
+- Banco local: `docker compose up -d mysql`; primeira carga: `npm run setup`; subir tudo: `npm run dev`; nova migração: `npm run db:migrate -w backend`.
 
 ## Regras do banco (MySQL local → SQL Server no Azure)
 - Edite só `backend/prisma/schema.prisma`. Depois rode `npm run schema:sqlserver -w backend` para regenerar `prisma/sqlserver/schema.prisma` (o teste `schema-sqlserver.test.ts` falha se esquecer).

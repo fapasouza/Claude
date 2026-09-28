@@ -11,28 +11,38 @@ Veja [docs/ARQUITETURA.md](docs/ARQUITETURA.md) e [docs/DEPLOY_AZURE.md](docs/DE
 
 ## Rodando localmente
 
-Pré-requisitos: Node.js 22+ e Docker (ou um MySQL 8 instalado).
+Pré-requisitos: [Git](https://git-scm.com/), [Node.js 22 LTS](https://nodejs.org/) (22.12 ou superior) e [Docker Desktop](https://www.docker.com/products/docker-desktop/) ou um MySQL 8 instalado.
 
 ```bash
-# 1. Banco MySQL (já cria também o banco de testes)
+# 1. Baixar o código
+git clone -b claude/boas-praticas-module-l805vv https://github.com/fapasouza/Claude.git boas-praticas
+cd boas-praticas
+
+# 2. Subir o MySQL (já cria os bancos boaspraticas e boaspraticas_test)
 docker compose up -d mysql
 
-# 2. Dependências (gera o Prisma Client automaticamente)
+# 3. Instalar dependências
 npm install
 
-# 3. Configuração
-cp backend/.env.example backend/.env      # ajuste se necessário
+# 4. Criar a configuração local (no PowerShell/CMD do Windows: copy backend\.env.example backend\.env)
+cp backend/.env.example backend/.env
 
-# 4. Tabelas e dados iniciais
-npm run db:migrate -w backend
-npm run db:seed -w backend
+# 5. Criar as tabelas e os dados de exemplo
+npm run setup
 
-# 5. Subir a API (porta 3333) e o frontend (porta 5173), em dois terminais
-npm run dev:api
-npm run dev:web
+# 6. Subir a API (porta 3333) e as telas (porta 5173)
+npm run dev
 ```
 
-Acesse http://localhost:5173. Usuários criados pelo seed (senha `Mudar@123`):
+Acesse http://localhost:5173. Para parar, use `Ctrl+C`. O banco continua no Docker; para desligar, rode `docker compose stop`.
+
+**Sem Docker (MySQL já instalado na máquina):** pule o passo 2, crie o banco com `CREATE DATABASE boaspraticas;` e, no `backend/.env`, troque `root:root` em `DATABASE_URL` pelo seu usuário e senha do MySQL.
+
+**Problemas comuns**
+- *Porta 3306 em uso* ao subir o Docker: já existe um MySQL rodando na máquina. Pare esse serviço ou use a opção "Sem Docker".
+- *`npm run setup` não conecta no banco* logo após o `docker compose up`: o MySQL leva uns 20 segundos para iniciar na primeira vez. Espere e rode de novo.
+
+Usuários criados pelo seed (senha `Mudar@123`):
 
 | E-mail | Perfil |
 |---|---|
